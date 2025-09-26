@@ -38,7 +38,7 @@ export async function generateTweet(topic) {
       max_tokens: 50,
     });
 
-    return response;
+    return response.choices[0].message.content.trim();
   } catch (err) {
     console.error("Error generating tweet:", err.message);
     return `Couldn't generate tweet for ${topic}`;
