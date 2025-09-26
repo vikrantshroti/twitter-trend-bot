@@ -38,11 +38,6 @@ export async function generateTweet(topic) {
       max_tokens: 50,
     });
 
-    let tweet = response.choices[0].message.content.trim();
-    const words = tweet.split(" ");
-    if (words.length > 150) {
-      tweet = words.slice(0, 150).join(" ") + "...";
-    }
     return tweet;
   } catch (err) {
     console.error("Error generating tweet:", err.message);
