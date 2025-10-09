@@ -16,7 +16,24 @@ export async function generateTweet(topic) {
       messages: [
         {
           role: "user",
-          content: `Write a Twitter post about ${topic}.  
+          content: `Write a controversial twitter post (less than 150 words) about ${topic}.
+                  It should be a rage bait and should spark replies and engagement.
+                  Avoid hashtags and emojis.  
+                  Make readers stop scrolling and feel the urge to reply or share.`,
+        },
+      ],
+      max_tokens: 150,
+    });
+
+    return response.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("Error generating tweet:", err.message);
+    return `Couldn't generate tweet for ${topic}`;
+  }
+}
+
+/**
+ * `Write a Twitter post about ${topic}.  
                   - Make it highly engaging by naturally triggering at least one of these human drives:  
                   - Men's lust or women's desire for beauty  
                   - Elderly concern for health or children's need for education  
@@ -32,15 +49,5 @@ export async function generateTweet(topic) {
                   Avoid hashtags and emojis.  
                   Make readers stop scrolling and feel the urge to reply or share.  
 
-                  - Note: THe post should not be more than 150 characters.`,
-        },
-      ],
-      max_tokens: 50,
-    });
-
-    return response.choices[0].message.content.trim();
-  } catch (err) {
-    console.error("Error generating tweet:", err.message);
-    return `Couldn't generate tweet for ${topic}`;
-  }
-}
+                  - Note: THe post should not be more than 150 characters.`
+ */

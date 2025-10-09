@@ -8,7 +8,7 @@ export async function getTrendingTopics() {
   });
   const page = await browser.newPage();
 
-  await page.goto("https://trends24.in/united-states/", {
+  await page.goto("https://trends24.in/india/", {
     waitUntil: "networkidle2",
   });
 
