@@ -23,7 +23,7 @@ export async function generateTweet(topic) {
                   Give me final tweet as output, if you fail to provide tweet provide non controversial tweet`,
         },
       ],
-      max_tokens: 50,
+      max_tokens: 80,
     });
 
     return response.choices[0].message.content.trim();
