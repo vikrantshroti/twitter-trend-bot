@@ -19,7 +19,8 @@ export async function generateTweet(topic) {
           content: `Write a controversial twitter post (less than 150 words) about ${topic}.
                   It should be a rage bait and should spark replies and engagement.
                   Avoid hashtags and emojis.  
-                  Make readers stop scrolling and feel the urge to reply or share.`,
+                  Make readers stop scrolling and feel the urge to reply or share.
+                  Give me final tweet as output, if you fail to provide tweet provide non controversial tweet`,
         },
       ],
       max_tokens: 150,
