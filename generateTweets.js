@@ -1,6 +1,7 @@
 // generateTweet.js
 import OpenAI from "openai";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
 dotenv.config();
 
 // Use Groq instead of OpenAI
@@ -9,6 +10,85 @@ const client = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
+/**
+ * Fetch a recent news article using Google News RSS
+ */
+async function fetchNews(topic) {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(
+    topic
+  )}&hl=en-IN&gl=IN&ceid=IN:en`;
+
+  const res = await fetch(url);
+  const text = await res.text();
+
+  // Very light RSS parsing (no heavy libs)
+  const titleMatch = text.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/g);
+  const descMatch = text.match(
+    /<description><!\[CDATA\[(.*?)\]\]><\/description>/g
+  );
+
+  if (!titleMatch || titleMatch.length < 2) return null;
+
+  const headline = titleMatch[1]
+    .replace("<title><![CDATA[", "")
+    .replace("]]></title>", "");
+
+  const summary = descMatch?.[1]
+    ?.replace("<description><![CDATA[", "")
+    ?.replace("]]></description>", "")
+    ?.slice(0, 300);
+
+  return { headline, summary };
+}
+
+/**
+ * Generate tweet from real news
+ */
+export async function generateTweet(topic) {
+  try {
+    const news = await fetchNews(topic);
+
+    if (!news) {
+      return `People are talking about ${topic}, but nobody is asking the uncomfortable questions.`;
+    }
+
+    const response = await client.chat.completions.create({
+      model: "allam-2-7b", // Groq free model
+      messages: [
+        {
+          role: "system",
+          content: "You are a viral Twitter commentator.",
+        },
+        {
+          role: "user",
+          content: `
+Here is a real news headline and summary:
+
+Headline: ${news.headline}
+Summary: ${news.summary}
+
+Task:
+- Write ONE Twitter post (max 150 words)
+- Make it rage-bait or controversy-driven
+- Spark replies and debate
+- No hashtags, no emojis
+- If controversial framing fails, soften slightly but keep it engaging
+- Output ONLY the final tweet
+`,
+        },
+      ],
+      max_tokens: 120,
+      temperature: 0.8,
+    });
+
+    return response.choices[0].message.content.trim();
+  } catch (err) {
+    console.error("Error generating tweet:", err.message);
+    return `This news about ${topic} is being discussed, but something feels off about the way it's being reported.`;
+  }
+}
+
+/*
 export async function generateTweet(topic) {
   try {
     const response = await client.chat.completions.create({
@@ -32,6 +112,7 @@ export async function generateTweet(topic) {
     return `Couldn't generate tweet for ${topic}`;
   }
 }
+*/
 
 /**
  * `Write a Twitter post about ${topic}.  
