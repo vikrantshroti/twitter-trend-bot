@@ -13,32 +13,52 @@ const client = new OpenAI({
 /**
  * Fetch a recent news article using Google News RSS
  */
-async function fetchNews(topic) {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(
-    topic
-  )}&hl=en-IN&gl=IN&ceid=IN:en`;
+export async function fetchNews(topic) {
+  const sources = [
+    `https://news.google.com/rss/search?q=${encodeURIComponent(
+      topic
+    )}&hl=en-IN&gl=IN&ceid=IN:en`,
+    `https://www.bing.com/news/search?q=${encodeURIComponent(
+      topic
+    )}&format=rss`,
+  ];
 
-  const res = await fetch(url);
-  const text = await res.text();
+  for (const url of sources) {
+    try {
+      console.log("Fetching news from:", url);
 
-  // Very light RSS parsing (no heavy libs)
-  const titleMatch = text.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/g);
-  const descMatch = text.match(
-    /<description><!\[CDATA\[(.*?)\]\]><\/description>/g
-  );
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+          Accept: "application/rss+xml",
+        },
+      });
 
-  if (!titleMatch || titleMatch.length < 2) return null;
+      const text = await res.text();
+      const itemMatch = text.match(/<item>([\s\S]*?)<\/item>/);
 
-  const headline = titleMatch[1]
-    .replace("<title><![CDATA[", "")
-    .replace("]]></title>", "");
+      if (!itemMatch) continue;
 
-  const summary = descMatch?.[1]
-    ?.replace("<description><![CDATA[", "")
-    ?.replace("]]></description>", "")
-    ?.slice(0, 300);
+      const item = itemMatch[1];
 
-  return { headline, summary };
+      const title =
+        item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1] ||
+        item.match(/<title>(.*?)<\/title>/)?.[1];
+
+      const desc =
+        item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] ||
+        item.match(/<description>(.*?)<\/description>/)?.[1];
+
+      if (!title) continue;
+
+      return {
+        headline: title.trim(),
+        summary: desc?.replace(/<[^>]+>/g, "").slice(0, 300),
+      };
+    } catch {}
+  }
+
+  return null;
 }
 
 /**
@@ -47,10 +67,26 @@ async function fetchNews(topic) {
 export async function generateTweet(topic) {
   try {
     const news = await fetchNews(topic);
+    console.log("Fetched news:", news);
 
-    if (!news) {
-      return `People are talking about ${topic}, but nobody is asking the uncomfortable questions.`;
-    }
+    const prompt = news
+      ? `
+Headline: ${news.headline}
+Summary: ${news.summary}
+
+Write ONE Twitter post (max 150 words).
+Make it controversial or rage-bait.
+No hashtags. No emojis.
+Output ONLY the tweet.
+`
+      : `
+"${topic}" is trending.
+
+Write ONE opinionated Twitter post (max 150 words).
+Spark debate, fear, desire, or status anxiety.
+No hashtags. No emojis.
+Output ONLY the tweet.
+`;
 
     const response = await client.chat.completions.create({
       model: "allam-2-7b", // Groq free model
