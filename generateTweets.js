@@ -1,7 +1,6 @@
 // generateTweet.js
 import OpenAI from "openai";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
 dotenv.config();
 
 // Use Groq instead of OpenAI
@@ -69,26 +68,26 @@ export async function generateTweet(topic) {
     const news = await fetchNews(topic);
     console.log("Fetched news:", news);
 
-    const prompt = news
-      ? `
-        Headline: ${news.headline}
-        Summary: ${news.summary}
+    const userPrompt = news
+      ? `Here is a real news headline and summary:
 
-        You are writing a book and a character is wiritng a tweet which makes him famous, 
-        now write ONE Twitter post (max 150 words).
-        Make it controversial or rage-bait.
-        No hashtags. No emojis.
-        Output ONLY the tweet.
-        `
-      : `
-        "${topic}" is trending.
+Headline: ${news.headline}
+Summary: ${news.summary}
 
-        You are writing a book and a character is wiritng a tweet which makes him famous, 
-        now write ONE opinionated Twitter post (max 150 words).
-        Spark debate, fear, desire, or status anxiety.
-        No hashtags. No emojis.
-        Output ONLY the tweet.
-      `;
+Task:
+- Write ONE Twitter post (max 150 words)
+- Make it rage-bait or controversy-driven
+- Spark replies and debate
+- No hashtags, no emojis
+- If controversial framing fails, soften slightly but keep it engaging
+- Output ONLY the final tweet`
+      : `"${topic}" is trending.
+
+Task:
+- Write ONE opinionated Twitter post (max 150 words)
+- Spark debate, fear, desire, or status anxiety
+- No hashtags, no emojis
+- Output ONLY the final tweet`;
 
     const response = await client.chat.completions.create({
       model: "allam-2-7b", // Groq free model
@@ -99,20 +98,7 @@ export async function generateTweet(topic) {
         },
         {
           role: "user",
-          content: `
-                    Here is a real news headline and summary:
-
-                    Headline: ${news.headline}
-                    Summary: ${news.summary}
-
-                    Task:
-                    - Write ONE Twitter post (max 150 words)
-                    - Make it rage-bait or controversy-driven
-                    - Spark replies and debate
-                    - No hashtags, no emojis
-                    - If controversial framing fails, soften slightly but keep it engaging
-                    - Output ONLY the final tweet
-                    `,
+          content: userPrompt,
         },
       ],
       max_tokens: 120,
