@@ -1,19 +1,22 @@
 # Twitter Bot 🤖
 
-This project is a simple Twitter bot that fetches popular tweets on trending topics, summarizes or rephrases them using OpenAI's GPT-3.5, and posts the result back to Twitter. It is built with Node.js and uses the `twitter-api-v2` and `openai` libraries.
+This project is a Node.js Twitter bot that scrapes trending topics (India), fetches real news headlines for a selected topic, generates an opinionated tweet using Groq's LLM (Allam-2-7B), and posts it to Twitter via the Twitter API v2.
+
+It runs once immediately and can be scheduled with `node-cron`.
 
 ## Features
 
-- Selects a random topic from a predefined list
-- Fetches a popular tweet on that topic
-- Uses OpenAI to generate a tweetable summary or rephrasing
-- Posts the generated tweet to your Twitter account
+- Scrapes trending topics from [trends24.in](https://trends24.in/india/) (direct fetch, with Puppeteer fallback), falling back to Google Trends RSS
+- Fetches a real news headline for the selected topic from Google News RSS or Bing News RSS
+- Generates a short, opinionated tweet using Groq's `allam-2-7b` model
+- Posts the generated tweet to your Twitter account via `twitter-api-v2`
+- Optional scheduled execution via `node-cron`
 
 ## Requirements
 
 - Node.js (v16+ recommended)
-- Twitter API credentials
-- OpenAI API key
+- Twitter API credentials (App key/secret, Access token/secret)
+- Groq API key
 
 ## Setup
 
@@ -31,7 +34,7 @@ This project is a simple Twitter bot that fetches popular tweets on trending top
    TWITTER_APP_SECRET=your-twitter-app-secret
    TWITTER_ACCESS_TOKEN=your-twitter-access-token
    TWITTER_ACCESS_SECRET=your-twitter-access-secret
-   OPENAI_KEY=your-openai-api-key
+   GROQ_API_KEY=your-groq-api-key
    ```
 
 4. **Run the bot:**
@@ -40,19 +43,40 @@ This project is a simple Twitter bot that fetches popular tweets on trending top
    npm start
    ```
 
+   The bot runs once immediately. Scheduling via `node-cron` is wired into `bot.js` — uncomment/configure the cron job there to run on a recurring interval.
+
 ## How it works
 
-- The bot randomly selects a topic from a hardcoded list.
-- It fetches up to 10 recent English tweets (excluding retweets) about that topic.
-- The most popular tweet (by likes and retweets) is chosen.
-- The tweet is sent to OpenAI's GPT-3.5 to be summarized or rephrased in a neutral, engaging tone.
-- The result is posted as a new tweet from your account.
+1. `scrapeTrends.js` fetches trending topics for India from trends24.in (direct HTTP fetch, with Puppeteer fallback), falling back to Google Trends RSS if needed.
+2. `bot.js` picks one random trending topic.
+3. `generateTweets.js` fetches a real news headline for the topic (Google News RSS / Bing News RSS) and sends it to Groq's `allam-2-7b` model to generate an opinionated, engagement-driven tweet (max 150 words, no hashtags or emojis).
+4. `postTweet.js` posts the generated tweet to Twitter using `twitter-api-v2`.
+
+## Project structure
+
+```
+bot.js            # Entry point: fetches trends, generates + posts a tweet
+generateTweets.js # News fetching + tweet generation via Groq
+postTweet.js      # Posts a tweet via Twitter API v2
+scrapeTrends.js   # Trending topics scraping (trends24.in, Puppeteer, Google Trends)
+test.js           # Node test tests for trend scraping
+.env              # API credentials (not committed)
+```
 
 ## Dependencies
 
 - [twitter-api-v2](https://www.npmjs.com/package/twitter-api-v2)
-- [openai](https://www.npmjs.com/package/openai)
+- [groq-sdk](https://www.npmjs.com/package/groq-sdk)
+- [openai](https://www.npmjs.com/package/openai) (OpenAI-compatible client pointed at Groq)
 - [dotenv](https://www.npmjs.com/package/dotenv)
+- [node-cron](https://www.npmjs.com/package/node-cron)
+- [puppeteer](https://www.npmjs.com/package/puppeteer)
+
+## Testing
+
+```sh
+npm test
+```
 
 ## License
 
